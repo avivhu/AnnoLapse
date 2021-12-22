@@ -1,0 +1,24 @@
+# Annolapse service
+# =================
+# A systemd service that runs the timeplapse capture automatically after power-on.
+#
+# Notes:
+#  -  'python3 -u' option makes the printing "unbuffered" so it appears immediately in systemd logs.
+#  -  Set User=pi so the python environment is available. We did not create a virtualenv.
+
+
+[Unit]
+Description=Annolapse Timelapse Service
+After=multi-user.target
+
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/
+ExecStart=/usr/bin/python3 -u /home/pi/dev/AnnoLapse/timelapse.py
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

@@ -3,22 +3,83 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 import time
+from dotenv import load_dotenv
 
-width = 3280//2
-height = 2464//2
-exposures = [-10, -5, 0, 5]
+from picamera.camera import PiCamera
+from storage import upload_to_remote_storage
+from utils import capture_still, DEFAULT_FRAME_WH
 
-time_str = datetime.now().replace(microsecond=0).isoformat()
-time_str = time_str.replace(':', '-')
+CONTAINER_NAME = 'thecontainer'
+TIMELAPSE_NAME = 'annolapse1'
+CAMERA_ISO = 200
+LOCAL_IMAGES_BASE_PATH = '/home/pi/timelapse_data'
 
-dst_dir = Path('~/images')
 
-period_sec = 60*1 # Every minute
+def get_image_fname(dst_dir, counter, time_str, shutter_speed_percent):
+    out_file = dst_dir / f'{counter:06d}--{time_str}--shutter_{shutter_speed_percent:03d}.jpg'
+    return out_file
 
-while True:
-    for ev in exposures:
-        out_file = dst_dir / f'{time_str}--ev_{ev:+03d}.jpg'
-        cmd = f'raspistill -o {str(out_file)} -w {width} -h {height} -rot 180 --raw -ev {ev}'
-        print(cmd)
-        subprocess.check_output(cmd, shell=True)
-    time.sleep(period_sec)
+
+def capture_picamera_method(dst_dir: Path, counter: int, time_str: str):
+    with PiCamera(resolution=DEFAULT_FRAME_WH, framerate=2) as camera:
+        # Set ISO to the desired value
+        camera.iso = CAMERA_ISO
+
+        # Wait for the automatic gain control to settle
+        time.sleep(5)
+
+        # Now fix the values
+        base_speed = camera.exposure_speed
+        camera.shutter_speed = camera.exposure_speed
+        camera.exposure_mode = 'off'
+        awb_gains = camera.awb_gains
+        camera.awb_mode = 'off'
+        camera.awb_gains = awb_gains
+
+        shutter_speed_percents = [20, 50, 100, 200, 500]
+
+        # Finally, take several photos with the fixed settings
+        for i, shutter_speed_percent in enumerate(shutter_speed_percents):
+            desired_speed = round(shutter_speed_percent / 100.0 * base_speed)
+            camera.shutter_speed = desired_speed
+
+            # Need to wait for the command to take effect
+            time.sleep(1)
+            out_fname = get_image_fname(dst_dir, counter, time_str, shutter_speed_percent)
+            camera.capture(str(out_fname))
+            print(i, str(out_fname), shutter_speed_percent, camera.framerate, desired_speed/1000, camera.exposure_speed/1000)
+
+
+def upload_files_and_delete(timelapse_name, local_dir):
+    upload_to_remote_storage(container_name=CONTAINER_NAME, source=str(local_dir), dest=f'{timelapse_name}/images', delete=True)
+
+
+def main():
+    print('Capturing timelapse')
+    load_dotenv()
+
+    local_images_dir = Path(f'{LOCAL_IMAGES_BASE_PATH}/{TIMELAPSE_NAME}/images')
+    local_images_dir.mkdir(parents=True, exist_ok=True)
+    period_sec = 10  # Every minute
+    counter = 0
+
+    while True:
+        # Format time string with punctuation that can be in a file name
+        time_str = datetime.now().replace(microsecond=0).isoformat()
+        time_str = time_str.replace(':', '-')
+
+        # Capture image HDR sequence (aka bracket)
+        capture_picamera_method(local_images_dir, counter, time_str)
+
+        try:
+            # Upload latest and delete. If we can't upload, we store and try again later
+            upload_files_and_delete(TIMELAPSE_NAME, local_images_dir)
+        except Exception as ex:
+            print('Error uploading files: ', ex)
+
+        # Wait for next sequence
+        time.sleep(period_sec)
+
+
+if __name__ == '__main__':
+    main()
