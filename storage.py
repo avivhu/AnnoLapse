@@ -21,8 +21,8 @@ def _upload_dir(client, source, dest, delete):
             _upload_file(client, file_path, blob_path)
             if delete:
                 _remove(file_path)
-    if delete:
-        _remove(source)
+    # if delete:
+    #    _remove(source)
 
 
 # https://stackoverflow.com/a/41789397
