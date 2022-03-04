@@ -4,6 +4,8 @@ from datetime import datetime
 from pathlib import Path
 import time
 from dotenv import load_dotenv
+import argparse
+
 
 from picamera.camera import PiCamera
 from storage import upload_to_remote_storage
@@ -74,6 +76,29 @@ def main():
         # Wait for next sequence
         time.sleep(period_sec)
 
+        
+def run_viewfinder():
+     cmd = 'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex night   " -o output_http.so'
+     r = subprocess.run(cmd, shell=True)
+     r.wait()
+
+     
+def _get_hostname():
+    return subprocess.check_output('hostname', text=True).strip()
+
+
+def _get_viewfinder_url():
+    return 'http://{}:8080/?action=stream'.format(_get_hostname())
+    
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--view', help='Start viewfinder service at ' + _get_viewfinder_url(), action="store_true")
+    args = parser.parse_args()
+
+    if args.view:
+        print('Running viewfinder in ' + _get_viewfinder_url())
+        run_viewfinder()
+    else:
+        main()
+        
