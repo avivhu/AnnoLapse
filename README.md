@@ -22,3 +22,18 @@ TIMELAPSE_AZURE_STORAGE_CONNECTION_STRING=<CONNECTION_STRING>
 ### Systemd service
 The `annolapse` service starts up the timelapse recorded automatically when your raspberry pi powers up.
 
+## Troubleshooting
+
+### Print the system log:
+    ```
+    tail -f  /var/log/syslog
+    ```
+### Run manually and debug
+
+1. Stop service, then run the program
+```
+systemctl stop annolapse.service
+python3 timelapse.py
+```
+    
+    
