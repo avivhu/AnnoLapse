@@ -17,3 +17,18 @@ def capture_raspistill_method(dst_dir, time_str):
     for ev in exposures:
         out_file = dst_dir / f'{time_str}--ev_{ev:+03d}.jpg'
         capture_still(out_file, ev=ev)
+
+# Run command and show its stdout in real time
+# Throw if error
+def run_command(cmd):
+    print(f'Running command: {cmd}')
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    while True:
+        line = process.stdout.readline()
+        if line:
+            print(line.decode('utf-8').rstrip())
+        if process.poll() is not None:
+            break
+    process.wait()
+    if process.returncode != 0:
+        raise Exception(f'Command failed: {cmd}')
