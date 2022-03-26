@@ -57,7 +57,7 @@ def main():
 
     local_images_dir = Path(f'{settings.LOCAL_IMAGES_BASE_PATH}/{settings.TIMELAPSE_NAME}/images')
     local_images_dir.mkdir(parents=True, exist_ok=True)
-    period_sec = 10  # Every minute
+    period_sec = 60  # Every minute
 
     while True:
         # Format time string with punctuation that can be in a file name
