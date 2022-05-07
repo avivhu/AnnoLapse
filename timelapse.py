@@ -90,7 +90,7 @@ def main():
 
 
 def run_viewfinder(port: int):
-    cmd = f'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex night" -o "output_http.so -p {port}"'
+    cmd = f'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex auto" -o "output_http.so -p {port}"'
     r = subprocess.run(cmd, shell=True)
     r.wait()
 
