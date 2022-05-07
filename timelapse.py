@@ -77,8 +77,8 @@ def main():
         time.sleep(period_sec)
 
         
-def run_viewfinder():
-     cmd = 'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex night   " -o output_http.so'
+def run_viewfinder(port: int):
+     cmd = f'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex night" -o "output_http.so -p {port}"'
      r = subprocess.run(cmd, shell=True)
      r.wait()
 
@@ -87,18 +87,19 @@ def _get_hostname():
     return subprocess.check_output('hostname', text=True).strip()
 
 
-def _get_viewfinder_url():
-    return 'http://{}:8080/?action=stream'.format(_get_hostname())
+def _get_viewfinder_url(port: int):
+    return 'http://{}:{}/?action=stream'.format(_get_hostname(), port)
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--view', help='Start viewfinder service at ' + _get_viewfinder_url(), action="store_true")
+    parser.add_argument('--view', help='Start live video (viewfinder). It may be accessed over http', action="store_true")
+    parser.add_argument('--port', default=80, help='Port for viewfinder service')
     args = parser.parse_args()
 
     if args.view:
-        print('Running viewfinder in ' + _get_viewfinder_url())
-        run_viewfinder()
+        print('Running viewfinder in ' + _get_viewfinder_url(args.port))
+        run_viewfinder(args.port)
     else:
         main()
         
