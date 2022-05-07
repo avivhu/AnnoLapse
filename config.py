@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 # Storage settings
-CONTAINER_NAME = 'thecontainer'
-TIMELAPSE_NAME = 'annolapse1'
-LOCAL_IMAGES_BASE_PATH = '/home/pi/timelapse_data'
+CONTAINER_NAME = "thecontainer"
+TIMELAPSE_NAME = "annolapse1"
+LOCAL_IMAGES_BASE_PATH = "/home/pi/timelapse_data"
 
 # Capture settings
 CAMERA_ISO = 200

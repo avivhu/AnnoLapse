@@ -11,7 +11,7 @@ import utils
 
 # Define the region of the image on which we calculate the focus.
 # It is a fraction of the total image width,height.
-# For example, ROI=0.5 defines a centered rectangle with area 
+# For example, ROI=0.5 defines a centered rectangle with area
 # (.5)x(.5) of the image area.
 ROI = 0.2
 INTERVAL_SEC = 1
@@ -22,7 +22,7 @@ with PiCamera() as camera:
     time.sleep(1)
     with PiRGBArray(camera) as stream:
         while True:
-            camera.capture(stream, format='bgr')
+            camera.capture(stream, format="bgr")
 
             # At this point the image is available as stream.array
             image = np.copy(stream.array)
@@ -30,9 +30,9 @@ with PiCamera() as camera:
 
             # Crop center
             size_hw = np.array(image.shape[:2])
-            tl = (size_hw * (1/2.0 - ROI/2.0)).astype(int)
-            br = (tl + ROI*size_hw).astype(int)
-            cropped = image[tl[0]:br[0], tl[1]:br[1], :]
+            tl = (size_hw * (1 / 2.0 - ROI / 2.0)).astype(int)
+            br = (tl + ROI * size_hw).astype(int)
+            cropped = image[tl[0] : br[0], tl[1] : br[1], :]
 
             # Use the center channel (green) as it's the best among RGB to measure intensity.
             cropped = np.copy(cropped[:, :, 1])
@@ -41,6 +41,6 @@ with PiCamera() as camera:
             print(focus_measure)
 
             cv2.rectangle(image, tl[::-1], br[::-1], [255, 255, 255], thickness=3)
-            cv2.imwrite('/tmp/im.bmp', image)
-            cv2.imwrite('/tmp/crop.bmp', cropped)
+            cv2.imwrite("/tmp/im.bmp", image)
+            cv2.imwrite("/tmp/crop.bmp", cropped)
             time.sleep(INTERVAL_SEC)
