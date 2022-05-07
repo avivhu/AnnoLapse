@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
-import settings
+import config
 import time
 
 from utils import run_command
@@ -66,7 +66,7 @@ def get_latest_files(container_name, day):
     service_client = BlobServiceClient.from_connection_string(connect_str)
     client = service_client.get_container_client(container_name)
     if day is not None:
-        start_with = f'{settings.TIMELAPSE_NAME}/images/{day}'
+        start_with = f'{config.TIMELAPSE_NAME}/images/{day}'
     last_dl = None
     while True:
         blobs = client.list_blobs(name_starts_with=start_with)
@@ -87,7 +87,7 @@ def download_files_DEPRECATED(container_name, date_prefix, dst_dir):
     connect_str = _get_connection_string()
     service_client = BlobServiceClient.from_connection_string(connect_str)
     client = service_client.get_container_client(container_name)
-    start_with = f'{settings.TIMELAPSE_NAME}/images/{date_prefix}'
+    start_with = f'{config.TIMELAPSE_NAME}/images/{date_prefix}'
     blobs = client.list_blobs(name_starts_with=start_with)
     blobs = list(blobs)
     blobs.sort(key=lambda b: b.name)
@@ -103,7 +103,7 @@ def download_files_DEPRECATED(container_name, date_prefix, dst_dir):
 
 def download_files(container_name: str, date_prefix: str, dst_dir: Path, overwrite: bool):
     sas_key = _get_sas_key()
-    in_dir = f'{settings.TIMELAPSE_NAME}/images'
+    in_dir = f'{config.TIMELAPSE_NAME}/images'
     dst_dir2 = f'{dst_dir}/{in_dir}'
     Path(dst_dir2).mkdir(parents=True, exist_ok=True)
     url = f'https://annolapse.blob.core.windows.net/{container_name}/{in_dir}/*'

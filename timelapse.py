@@ -6,11 +6,11 @@ import time
 from dotenv import load_dotenv
 import argparse
 
-
 from picamera.camera import PiCamera
 from storage import upload_to_remote_storage
 from utils import capture_still, DEFAULT_FRAME_WH
-import settings
+import config
+
 
 def get_image_fname(dst_dir, time_str, shutter_speed_percent):
     out_file = dst_dir / f'{time_str}--shutter_{shutter_speed_percent:03d}.jpg'
@@ -19,8 +19,8 @@ def get_image_fname(dst_dir, time_str, shutter_speed_percent):
 
 def capture_picamera_method(dst_dir: Path, time_str: str):
     with PiCamera(resolution=DEFAULT_FRAME_WH, framerate=2) as camera:
-        # Set ISO to the desired value
-        camera.iso = settings.CAMERA_ISO
+        # Set ISO
+        camera.iso = config.CAMERA_ISO
 
         # Wait for the automatic gain control to settle
         time.sleep(5)
@@ -33,10 +33,8 @@ def capture_picamera_method(dst_dir: Path, time_str: str):
         camera.awb_mode = 'off'
         camera.awb_gains = awb_gains
 
-        shutter_speed_percents = [20, 50, 100, 200, 500]
-
         # Finally, take several photos with the fixed settings
-        for i, shutter_speed_percent in enumerate(shutter_speed_percents):
+        for i, shutter_speed_percent in enumerate(config.SHUTTER_SPEED_PERCENTS):
             desired_speed = round(shutter_speed_percent / 100.0 * base_speed)
             camera.shutter_speed = desired_speed
 
@@ -48,16 +46,16 @@ def capture_picamera_method(dst_dir: Path, time_str: str):
 
 
 def upload_files_and_delete(timelapse_name, local_dir):
-    upload_to_remote_storage(container_name=settings.CONTAINER_NAME, source=str(local_dir), dest=f'{timelapse_name}/images', delete=True)
+    upload_to_remote_storage(container_name=config.CONTAINER_NAME, source=str(local_dir), dest=f'{timelapse_name}/images', delete=True)
 
 
 def main():
     print('Capturing timelapse')
     load_dotenv()
 
-    local_images_dir = Path(f'{settings.LOCAL_IMAGES_BASE_PATH}/{settings.TIMELAPSE_NAME}/images')
+    local_images_dir = Path(f'{config.LOCAL_IMAGES_BASE_PATH}/{config.TIMELAPSE_NAME}/images')
     local_images_dir.mkdir(parents=True, exist_ok=True)
-    period_sec = 60  # Every minute
+    period_sec = config.INTERVAL_SEC
 
     while True:
         # Format time string with punctuation that can be in a file name
@@ -69,7 +67,7 @@ def main():
 
         try:
             # Upload latest and delete. If we can't upload, we store and try again later
-            upload_files_and_delete(settings.TIMELAPSE_NAME, local_images_dir)
+            upload_files_and_delete(config.TIMELAPSE_NAME, local_images_dir)
         except Exception as ex:
             print('Error uploading files: ', ex)
 
@@ -94,7 +92,7 @@ def _get_viewfinder_url(port: int):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--view', help='Start live video (viewfinder). It may be accessed over http', action="store_true")
-    parser.add_argument('--port', default=80, help='Port for viewfinder service')
+    parser.add_argument('--port', default=config.DEFAULT_VIEWFINDER_PORT, help='Port for viewfinder service')
     args = parser.parse_args()
 
     if args.view:
