@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 import time
+from typing import Optional
 from dotenv import load_dotenv
 import argparse
 
@@ -12,12 +13,29 @@ from utils import capture_still, DEFAULT_FRAME_WH
 import config
 
 
-def get_image_fname(dst_dir, time_str, shutter_speed_percent):
-    out_file = dst_dir / f"{time_str}--shutter_{shutter_speed_percent:03d}.jpg"
+def get_image_out_path(dst_dir, series_datetime: datetime, shutter_speed_percent: int):
+    # Return image file and directory.
+    # Group images by date and by exposure series:
+    #   2022-05-07 / 2022-05-07T11-49-40 / 2022-05-07T11-49-40--shutter_100.jpg
+    datetime_str = series_datetime.isoformat()
+
+    # Format time string with punctuation that can be in a file name
+    datetime_str = datetime_str.replace(":", "-")
+    date_str = datetime_str.split("T")[0]
+    out_file = (
+        dst_dir
+        / date_str
+        / datetime_str
+        / f"{datetime_str}--shutter_{shutter_speed_percent:03d}.jpg"
+    )
     return out_file
 
 
-def capture_picamera_method(dst_dir: Path, time_str: str):
+def capture_picamera_method(dst_dir: Path):
+
+    # Get time, which we'll use to name the output images series
+    series_datetime = datetime.utcnow().replace(microsecond=0)
+
     with PiCamera(resolution=DEFAULT_FRAME_WH, framerate=2) as camera:
         # Set ISO
         camera.iso = config.CAMERA_ISO
@@ -40,7 +58,11 @@ def capture_picamera_method(dst_dir: Path, time_str: str):
 
             # Need to wait for the command to take effect
             time.sleep(1)
-            out_fname = get_image_fname(dst_dir, time_str, shutter_speed_percent)
+            out_fname = get_image_out_path(
+                dst_dir, series_datetime, shutter_speed_percent
+            )
+            out_fname.parent.mkdir(parents=True, exist_ok=True)
+
             camera.capture(str(out_fname))
             print(
                 i,
@@ -69,24 +91,28 @@ def main():
         f"{config.LOCAL_IMAGES_BASE_PATH}/{config.TIMELAPSE_NAME}/images"
     )
     local_images_dir.mkdir(parents=True, exist_ok=True)
-    period_sec = config.INTERVAL_SEC
 
+    prev_time: Optional[datetime] = None
     while True:
-        # Format time string with punctuation that can be in a file name
-        time_str = datetime.now().replace(microsecond=0).isoformat()
-        time_str = time_str.replace(":", "-")
+        if prev_time is not None:
+
+            # Wait for the remainder of the interval
+            elapsed = (datetime.now() - prev_time).total_seconds()
+            remainder = config.INTERVAL_SEC - elapsed
+            if remainder > 0:
+                print(f"Waiting for next series: {remainder:.1f} seconds")
+                time.sleep(remainder)
+
+        prev_time = datetime.now()
 
         # Capture image HDR sequence (aka bracket)
-        capture_picamera_method(local_images_dir, time_str)
+        capture_picamera_method(local_images_dir)
 
         try:
             # Upload latest and delete. If we can't upload, we store and try again later
             upload_files_and_delete(config.TIMELAPSE_NAME, local_images_dir)
         except Exception as ex:
             print("Error uploading files: ", ex)
-
-        # Wait for next sequence
-        time.sleep(period_sec)
 
 
 def run_viewfinder(port: int):
