@@ -37,6 +37,10 @@ def capture_picamera_method(dst_dir: Path):
     series_datetime = datetime.utcnow().replace(microsecond=0)
 
     with PiCamera(resolution=DEFAULT_FRAME_WH, framerate=2) as camera:
+
+        
+        camera.rotation = 180
+        
         # Set ISO
         camera.iso = config.CAMERA_ISO
 
@@ -50,7 +54,7 @@ def capture_picamera_method(dst_dir: Path):
         awb_gains = camera.awb_gains
         camera.awb_mode = "off"
         camera.awb_gains = awb_gains
-
+        
         # Finally, take several photos with the fixed settings
         for i, shutter_speed_percent in enumerate(config.SHUTTER_SPEED_PERCENTS):
             desired_speed = round(shutter_speed_percent / 100.0 * base_speed)
@@ -118,7 +122,6 @@ def main():
 def run_viewfinder(port: int):
     cmd = f'mjpg_streamer -i "input_raspicam.so -x 512 -y 384 -fps 2 -rot 180 -ex auto" -o "output_http.so -p {port}"'
     r = subprocess.run(cmd, shell=True)
-    r.wait()
 
 
 def _get_hostname():
