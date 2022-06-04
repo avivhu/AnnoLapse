@@ -1,4 +1,4 @@
 azure-storage-blob
+opencensus-ext-azure
 python-dotenv
 picamera
-

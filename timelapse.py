@@ -6,10 +6,12 @@ import time
 from typing import Optional
 from dotenv import load_dotenv
 import argparse
-
+import logging
+from opencensus.ext.azure.log_exporter import AzureLogHandler
 from picamera.camera import PiCamera
 from storage import upload_to_remote_storage
 from utils import capture_still, DEFAULT_FRAME_WH
+import json
 import config
 
 
@@ -28,7 +30,7 @@ def get_image_out_path(dst_dir, series_datetime: datetime, shutter_speed_percent
         / datetime_str
         / f"{datetime_str}--shutter_{shutter_speed_percent:03d}.jpg"
     )
-    return out_file
+    return out_file, datetime_str
 
 
 def capture_picamera_method(dst_dir: Path):
@@ -58,20 +60,26 @@ def capture_picamera_method(dst_dir: Path):
 
             # Need to wait for the command to take effect
             time.sleep(1)
-            out_fname = get_image_out_path(
+            out_fname, image_series_name = get_image_out_path(
                 dst_dir, series_datetime, shutter_speed_percent
             )
             out_fname.parent.mkdir(parents=True, exist_ok=True)
 
             camera.capture(str(out_fname))
-            print(
-                i,
-                str(out_fname),
-                shutter_speed_percent,
-                camera.framerate,
-                desired_speed / 1000,
-                camera.exposure_speed / 1000,
-            )
+
+            props = {
+                "series_name": image_series_name,
+                "index": i,
+                "filename": str(out_fname),
+                "shutter_speed_percent": shutter_speed_percent,
+                "camera.framerate": repr(camera.framerate),
+                "desired_speed": desired_speed / 1000,
+                "camera.exposure_speed": camera.exposure_speed / 1000,
+            }
+
+            logging.info(f"Capture: {str(props)}", extra={"custom_dimensions": props})
+
+    return image_series_name
 
 
 def upload_files_and_delete(timelapse_name, local_dir):
@@ -84,8 +92,28 @@ def upload_files_and_delete(timelapse_name, local_dir):
 
 
 def main():
-    print("Capturing timelapse")
+    print("Starting recorder")
     load_dotenv()
+
+    # Set up logging to Azure Application Insights
+    # See: https://docs.microsoft.com/en-us/azure/azure-monitor/app/opencensus-python
+    # Instantiate the exporter directly from the environment variable
+    # `APPLICATIONINSIGHTS_CONNECTION_STRING`
+    logging.basicConfig(
+        level=logging.INFO,
+        # format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            AzureLogHandler(),
+        ],
+    )
+    logging.info("Recorder logging enabled")
+
+    # Silence this spammy logger.
+    # See: https://stackoverflow.com/questions/52051501/azure-blob-storage-sdk-switch-off-logging
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+        logging.WARNING
+    )
 
     local_images_dir = Path(
         f"{config.LOCAL_IMAGES_BASE_PATH}/{config.TIMELAPSE_NAME}/images"
@@ -100,19 +128,25 @@ def main():
             elapsed = (datetime.now() - prev_time).total_seconds()
             remainder = config.INTERVAL_SEC - elapsed
             if remainder > 0:
-                print(f"Waiting for next series: {remainder:.1f} seconds")
+                logging.info(f"Waiting for next series: {remainder:.1f} seconds")
                 time.sleep(remainder)
 
         prev_time = datetime.now()
 
-        # Capture image HDR sequence (aka bracket)
-        capture_picamera_method(local_images_dir)
-
         try:
+            # Capture image HDR sequence (aka bracket)
+            image_series_name = capture_picamera_method(local_images_dir)
+
             # Upload latest and delete. If we can't upload, we store and try again later
             upload_files_and_delete(config.TIMELAPSE_NAME, local_images_dir)
+
+            logging.info(
+                f"Captured and uploaded image series {image_series_name}",
+                extra={"custom_dimensions": {"series_name": image_series_name}},
+            )
+
         except Exception as ex:
-            print("Error uploading files: ", ex)
+            logging.error("Error in timelapse capture", ex)
 
 
 def run_viewfinder(port: int):
