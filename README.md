@@ -5,22 +5,27 @@ Create a year-long timelapse video.
 
 ## Setup
 
-### Azure storage
-The images are uploaded to an Azure Storage blob.
+### Azure Storage
+* The images are uploaded to an Azure Storage blob container.
 
-1. Create an Azure Storage blob. Select the lowest priced storage type.
+1. Create an Azure Storage account. 
+    * Select the lowest priced storage type.
+1. Edit or create a `.env` file with this content.
+    ```
+    TIMELAPSE_AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;<...>"
+    ```
 
+### Logging and Health Monitoring with Azure
+1. Create an Azure Application Insights resource.
+1. Edit or create a `.env` file with this content.
+    ```
+    APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=<...>"
+    ```
 
-1. Copy the blob connection string from Azure Portal.
-
-1. Create .env file with this content:
-```
-TIMELAPSE_AZURE_STORAGE_CONNECTION_STRING=<CONNECTION_STRING>
-```
 
 
 ### Systemd service
-The `annolapse` service starts up the timelapse recorded automatically when your raspberry pi powers up.
+The `annolapse` service starts up the timelapse recorded automatically when your Raspberry Pi powers up.
 
 ## Troubleshooting
 
