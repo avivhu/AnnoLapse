@@ -88,32 +88,15 @@ def get_latest_files(container_name, day):
         time.sleep(1)
 
 
-def download_files_DEPRECATED(container_name, date_prefix, dst_dir):
-    connect_str = _get_connection_string()
-    service_client = BlobServiceClient.from_connection_string(connect_str)
-    client = service_client.get_container_client(container_name)
-    start_with = f"{config.TIMELAPSE_NAME}/images/{date_prefix}"
-    blobs = client.list_blobs(name_starts_with=start_with)
-    blobs = list(blobs)
-    blobs.sort(key=lambda b: b.name)
-    for blob in blobs:
-        download_file_path = dst_dir / blob.name
-
-        if ~download_file_path.exists():
-            download_file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(download_file_path, "wb") as download_file:
-                dl = client.download_blob(blob).readall()
-                download_file.write(dl)
-
-
-def download_files(
+def sync_files(
     container_name: str, date_prefix: str, dst_dir: Path, overwrite: bool
 ):
+    # Download files from source to destination. Delete files in the distination that that are not present in the source.
     sas_key = _get_sas_key()
     in_dir = f"{config.TIMELAPSE_NAME}/images"
-    dst_dir2 = f"{dst_dir}/{in_dir}"
+    dst_dir2 = dst_dir / in_dir
     Path(dst_dir2).mkdir(parents=True, exist_ok=True)
-    url = f"https://annolapse.blob.core.windows.net/{container_name}/{in_dir}/*"
+    url = f"https://annolapse.blob.core.windows.net/{container_name}/{in_dir}/"
     overwrite_str = "true" if overwrite else "false"
-    cmd = rf'azcopy cp "{url}?{sas_key}" "{dst_dir2}" --overwrite={overwrite_str} --from-to=BlobLocal --recursive --include-pattern "{date_prefix}*"'
+    cmd = rf'azcopy sync "{url}?{sas_key}" "{str(dst_dir2)}"  --include-pattern "{date_prefix}*"  --delete-destination true'
     run_command(cmd)

@@ -130,3 +130,9 @@ dmypy.json
 
 # VS Code
 .vscode/launch.json
+
+
+# Dask stuff
+dask-worker-space/
+
+

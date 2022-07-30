@@ -12,3 +12,6 @@ SHUTTER_SPEED_PERCENTS = [20, 50, 100, 200, 500]
 
 # Viewfinder settings
 DEFAULT_VIEWFINDER_PORT = 80
+
+# Options for post processor
+POST_PROCESSING_PATH = r"\\yarden\AnnoLapseData\Mirror"
