@@ -1,4 +1,5 @@
 import subprocess
+import logging
 
 
 FULL_WIDTH = 3280
@@ -25,7 +26,7 @@ def capture_raspistill_method(dst_dir, time_str):
 # Run command and show its stdout in real time
 # Throw if error
 def run_command(cmd):
-    print(f"Running command: {cmd}")
+    logging.debug(f"Running command: {cmd}")
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )

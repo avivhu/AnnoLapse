@@ -2,18 +2,18 @@
 import os
 from pathlib import Path
 import shutil
-import subprocess
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
+from azure.storage.blob import BlobServiceClient
 import config
 import time
+import logging
 
 from utils import run_command
 
 # From: https://stackoverflow.com/questions/63413832/upload-local-folder-to-azure-blob-storage-using-blobserviceclient-with-python-v1
 def _upload_file(client, source, dest):
-    print(f"Uploading {source} to {dest}")
     with open(source, "rb") as data:
         client.upload_blob(name=dest, data=data, overwrite=True)
+    logging.info(f"Uploaded: source={source} dest={dest}")
 
 
 def _upload_dir(client, source, dest, delete):
@@ -34,11 +34,11 @@ def _upload_dir(client, source, dest, delete):
 # https://stackoverflow.com/a/41789397
 def _remove(path):
     path = Path(path)
-    print("Removing", str(path))
     if path.is_file():
         path.unlink()  # remove file
     else:
         shutil.rmtree(path)  # remove dir
+    logging.debug(f"Removed file={str(path)}")
 
 
 def _get_connection_string():
