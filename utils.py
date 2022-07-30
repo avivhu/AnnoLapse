@@ -25,14 +25,14 @@ def capture_raspistill_method(dst_dir, time_str):
 
 # Run command and show its stdout in real time
 # Throw if error
-def run_command(cmd):
-    logging.debug(f"Running command: {cmd}")
+def run_command(cmd, print_output: bool = True):
+    logging.info(f"Running command: {cmd}")
     process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True
     )
     while True:
         line = process.stdout.readline()
-        if line:
+        if line and print_output:
             print(line.decode("utf-8").rstrip())
         if process.poll() is not None:
             break
