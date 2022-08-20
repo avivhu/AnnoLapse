@@ -129,10 +129,7 @@ dmypy.json
 .pyre/
 
 # VS Code
-.vscode/launch.json
-
+.vscode/
 
 # Dask stuff
 dask-worker-space/
-
-
