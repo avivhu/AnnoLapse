@@ -2,20 +2,20 @@
 import logging
 from typing import List, Optional
 from tqdm import tqdm
-from storage import sync_files
+from common.storage import sync_files
 from pathlib import Path
 import pandas as pd
 import cv2
-import settings
+import common.settings as settings
 import re
 import numpy as np
 import tempfile
 from dataclasses import dataclass
-from utils import run_command
+from common.utils import run_command
 import datetime
 from dateutil import tz
 import dask.distributed as dd
-import config
+import common.config as config
 import argparse
 
 
@@ -27,7 +27,7 @@ class ImageFile:
 
 @dataclass
 class ImageSet:
-    """A set same-time images with different exposures."""
+    """A set of same-time images with different exposures."""
 
     name: str
     files: List[ImageFile]
@@ -157,8 +157,6 @@ def read_image_sets_catalog(src_dir: Path, max_sets: Optional[int] = None):
     # Example: '2022-03-26T07-14-29--shutter_050.jpg' --> '2022-03-26T07-14-29, '050'
     pat_re = re.compile(r"(?P<time>.+?)--shutter_(?P<shutter>\d+?).jpg")
 
-    client = dd.Client(processes=False)
-
     # The directory format is images / day / image_set_name / im*.jpg
     # Walk all the directories at depth 2 (day / image_set_name )
     the_dirs = list(src_dir.glob("*/*"))
@@ -179,9 +177,8 @@ def read_image_sets_catalog(src_dir: Path, max_sets: Optional[int] = None):
         image_series = ImageSet(name=series, files=image_files)
         return image_series
 
-    image_sets = client.gather(client.map(_read, the_dirs))
-    image_sets = list(image_sets)
-
+    client = dd.Client(processes=False)
+    image_sets = list(client.gather(client.map(_read, the_dirs)))
     image_sets.sort(key=lambda x: x.name)
     return image_sets
 
@@ -189,7 +186,7 @@ def read_image_sets_catalog(src_dir: Path, max_sets: Optional[int] = None):
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument(
-        "--download", default=False, help="Download new images from storage"
+        "--download", default=True, help="Download new images from storage"
     )
     args = args.parse_args()
 
@@ -212,30 +209,36 @@ if __name__ == "__main__":
     image_sets0 = read_image_sets_catalog(src_dir, max_sets=None)
 
     # Remove non-full image sets
-    image_sets = [
+    image_sets1 = [
         aset
         for aset in image_sets0
-        if len(aset.files) == len(config.SHUTTER_SPEED_PERCENTS) 
+        if len(aset.files) == len(config.SHUTTER_SPEED_PERCENTS)
     ]
 
     # For each day, first image set after midday
     times = []
-    for image_set in image_sets:
+    for image_set in image_sets1:
         utc = datetime.datetime.strptime(image_set.name, "%Y-%m-%dT%H-%M-%S")
         local_time = compute_local_time(utc)
         times.append(pd.to_datetime(local_time))
 
-    df = pd.DataFrame({'time': times, 'image_set': image_sets})
-    df.loc[:, 't_since_midday'] = [
-        (t.replace(tzinfo=None) - datetime.datetime(t.year, t.month, t.day, 12, 0)).total_seconds() / 60 / 60
+    df = pd.DataFrame({"time": times, "image_set": image_sets1})
+    df.loc[:, "t_since_midday"] = [
+        (
+            t.replace(tzinfo=None) - datetime.datetime(t.year, t.month, t.day, 12, 0)
+        ).total_seconds()
+        / 60
+        / 60
         for t in times
     ]
-    df.loc[:, 'day'] = [t.day for t in times]
+    df.loc[:, "date"] = [t.date() for t in times]
 
     image_sets = []
-    for d, grp in df.groupby('day'):
-        a = grp[grp.t_since_midday >=0]
-        a = a.sort_values('t_since_midday')
+    for d, grp in df.groupby("date"):
+        a = grp[grp.t_since_midday >= 0]
+        if len(a) == 0:
+            continue
+        a = a.sort_values("t_since_midday")
         image_sets.append(a.iloc[0].image_set)
     image_sets.sort(key=lambda x: x.name)
 
@@ -248,7 +251,7 @@ if __name__ == "__main__":
     # List files, group by series
     processed_dir.mkdir(exist_ok=True)
 
-    client = dd.Client()#(processes=False)
+    client = dd.Client()  # (processes=False)
     for transformer in transformers:
         if False:
             futures = client.map(
@@ -260,7 +263,9 @@ if __name__ == "__main__":
             results = client.gather(futures)
         else:
             for image_set in image_sets:
-                process_single_set(image_set, transformer, processed_dir, overwrite=False)
+                process_single_set(
+                    image_set, transformer, processed_dir, overwrite=False
+                )
         for image_set in image_sets:
             afile = get_processed_file_path(image_set, transformer, processed_dir)
             assert afile.exists()

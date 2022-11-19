@@ -3,11 +3,11 @@
 # Manually twist the lens until the focus measure is maximized.
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-import focus_measure
+import recorder.focus_measure as focus_measure
 import cv2
 import numpy as np
 import time
-import utils
+import common.utils as utils
 
 # Define the region of the image on which we calculate the focus.
 # It is a fraction of the total image width,height.

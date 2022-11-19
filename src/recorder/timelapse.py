@@ -9,10 +9,10 @@ import argparse
 import logging
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 from picamera.camera import PiCamera
-from storage import upload_to_remote_storage
-from utils import capture_still, DEFAULT_FRAME_WH
+from common.storage import upload_to_remote_storage
+from common.utils import capture_still, DEFAULT_FRAME_WH
 import json
-import config
+import src.common.config as config
 
 
 def get_image_out_path(dst_dir, series_datetime: datetime, shutter_speed_percent: int):
