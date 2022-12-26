@@ -1,0 +1,39 @@
+<!doctype html>
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<html>
+
+<body>
+    <main>
+        <div>
+            <img src="{{ url_for('static', filename='images/Persistence of Memory Salvador Dali.jpg') }}" />
+        </div>
+        <div class="table-responsive-lg">
+            <table class="table  table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in days %}
+                    <tr>
+                        <td>
+                            {{ day.id }}
+                        </td>
+                        <td><a href="{{ url_for('show_day', day_id=day.id) }}">{{ day.display_name }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+
+</html>

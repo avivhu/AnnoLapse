@@ -1,0 +1,39 @@
+<!doctype html>
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<html>
+
+<body>
+    <main>
+        <a href="/">Home</a>
+        <br>
+        <h1>{{ day.display_name }} </h1>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Local Time</th>
+                    <th scope="col">Image Set</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image_set in image_sets %}
+                <tr>
+                    <td>
+                        {{ image_set.local_time }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('show_image_set', image_set_id=image_set.id) }}">{{ image_set.id }}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+
+</html>

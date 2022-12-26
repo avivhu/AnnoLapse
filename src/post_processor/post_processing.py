@@ -11,9 +11,8 @@ import re
 import numpy as np
 import tempfile
 from dataclasses import dataclass
-from common.utils import run_command
+from common.utils import compute_local_time, image_set_id_to_time, run_command
 import datetime
-from dateutil import tz
 import dask.distributed as dd
 import common.config as config
 import argparse
@@ -96,25 +95,10 @@ def create_hdr(src_files: List[Path], out_file: Path, method: str = "drago"):
     assert out_file.is_file()
 
 
-def compute_local_time(utc: datetime.datetime):
-    # Get local time
-    # See https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime
-    from_zone = tz.gettz("UTC")
-    to_zone = tz.gettz("Asia/Jerusalem")
-
-    # Tell the datetime object that it's in UTC time zone since
-    # datetime objects are 'naive' by default
-    utc = utc.replace(tzinfo=from_zone)
-
-    # Convert time zone
-    local_time = utc.astimezone(to_zone)
-    return local_time
-
-
 def print_overlay_text(img, image_set):
     # Parse datetime from iso format
-    utc = datetime.datetime.strptime(image_set.name, "%Y-%m-%dT%H-%M-%S")
-    local_time = compute_local_time(utc)
+    utc_time = image_set_id_to_time(image_set.name)
+    local_time = compute_local_time(utc_time, config.TIMEZONE)
 
     # Print file path on image
     text = f"{image_set.name}     {local_time}"
@@ -186,7 +170,7 @@ def read_image_sets_catalog(src_dir: Path, max_sets: Optional[int] = None):
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument(
-        "--download", default=True, help="Download new images from storage"
+        "--download", default=False, help="Download new images from storage"
     )
     args = args.parse_args()
 
@@ -219,7 +203,7 @@ if __name__ == "__main__":
     times = []
     for image_set in image_sets1:
         utc = datetime.datetime.strptime(image_set.name, "%Y-%m-%dT%H-%M-%S")
-        local_time = compute_local_time(utc)
+        local_time = compute_local_time(utc, config.TIMEZONE)
         times.append(pd.to_datetime(local_time))
 
     df = pd.DataFrame({"time": times, "image_set": image_sets1})

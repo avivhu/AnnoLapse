@@ -5,6 +5,8 @@ CONTAINER_NAME = "thecontainer"
 TIMELAPSE_NAME = "annolapse1"
 LOCAL_IMAGES_BASE_PATH = "/home/pi/timelapse_data"
 
+TIMEZONE = "Asia/Jerusalem"
+
 # Capture settings
 CAMERA_ISO = 200
 INTERVAL_SEC = 60

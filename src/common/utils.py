@@ -1,6 +1,7 @@
+from datetime import datetime
 import subprocess
 import logging
-
+from dateutil import tz
 
 FULL_WIDTH = 3280
 FULL_HEIGHT = 2464
@@ -39,3 +40,35 @@ def run_command(cmd, print_output: bool = True):
     process.wait()
     if process.returncode != 0:
         raise Exception(f"Command failed: {cmd}")
+
+
+def compute_local_time(utc: datetime, local_tz: str):
+    # Get local time
+    # See https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime
+    from_zone = tz.gettz("UTC")
+    to_zone = tz.gettz(local_tz)
+
+    # Tell the datetime object that it's in UTC time zone since
+    # datetime objects are 'naive' by default
+    utc = utc.replace(tzinfo=from_zone)
+
+    # Convert time zone
+    local_time = utc.astimezone(to_zone)
+    return local_time
+
+
+def image_set_id_to_time(image_set_id: str):
+    # Parse string such as 2022-12-23T10-21-18
+    # into a datetime object
+    utc_time = datetime.strptime(image_set_id, "%Y-%m-%dT%H-%M-%S")
+    return utc_time
+
+
+def _test():
+    atime = image_set_id_to_time("2022-12-23T10-21-18")
+    res = compute_local_time(atime, "Asia/Jerusalem")
+    assert res.hour == 12
+
+
+if __name__ == "__main__":
+    _test()

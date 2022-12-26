@@ -1,6 +1,5 @@
-# azure-storage-blob
-# opencensus-ext-azure
-# python-dotenv
-# picamera
-#
 opencv-python==4.5.5.64
+tqdm
+dask
+distributed
+pandas
