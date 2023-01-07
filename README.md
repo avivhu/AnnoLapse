@@ -27,12 +27,20 @@ Create a year-long timelapse video.
 ### Systemd service
 The `annolapse` service starts up the timelapse recorded automatically when your Raspberry Pi powers up.
 
+To install:
+```
+sudo chmod 644 *.service
+cp *.service /etc/systemd/system/
+sudo systemctl enable annolapse.service
+sudo systemctl enable annolapse_watchdog.service
+```
+
 ## Troubleshooting
 
 ### Print the system log:
-    ```
+```
     tail -f  /var/log/syslog
-    ```
+```
 ### Run manually and debug
 
 1. Stop service, then run the program
