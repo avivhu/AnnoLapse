@@ -12,7 +12,7 @@ from utils import run_command
 # From: https://stackoverflow.com/questions/63413832/upload-local-folder-to-azure-blob-storage-using-blobserviceclient-with-python-v1
 def _upload_file(client, source, dest):
     with open(source, "rb") as data:
-        client.upload_blob(name=dest, data=data, overwrite=True)
+        client.upload_blob(name=dest, data=data, overwrite=True, connection_timeout=120)
     logging.info(f"Uploaded: source={source} dest={dest}")
 
 
