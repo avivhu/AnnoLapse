@@ -1,0 +1,20 @@
+# Watchdog for Annolapse Service
+# ================================
+# Reboot raspberry pi every N minutes. This overcomes occasional system hangs.
+# The command uses sleep and so wouldn't be affected by changes to the system clock.
+# Runs early in the boot sequence, before networking. See also:
+#   https://unix.stackexchange.com/questions/229048/how-to-start-a-systemd-service-before-networking-starts
+
+[Unit]
+Description=Watchdog for Annolapse Timelapse Service
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c '(echo Annolapse watchdog will reboot the machine in 110m) && (sleep 110m) && (echo Annolapse watchdog is rebooting the machine) && (shutdown -r -f now)'
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target
